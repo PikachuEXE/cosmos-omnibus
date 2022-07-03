@@ -21,6 +21,16 @@ jobs:
         id: buildx
         with:
           install: true
+
+      - name: PrepareReg Names
+        # Container repo cannot have uppercase chars
+        #
+        # Ref
+        # https://github.com/docker/build-push-action/issues/37#issuecomment-720358308
+        run: |
+          echo IMAGE_REPOSITORY=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+          echo IMAGE_TAG=$(echo ${{ github.ref }} | tr '[:upper:]' '[:lower:]' | awk '{split($0,a,"/"); print a[3]}') >> $GITHUB_ENV
+
       - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
@@ -33,4 +43,4 @@ jobs:
         run: |
           touch .env # Create dummy env file
           cd ${{matrix.project}}
-          docker buildx bake -f build.yml --set node_1.tags=ghcr.io/${{ github.repository }}:b${{ github.run_number }}-${{matrix.project}}-${{matrix.version}}${{matrix.tag_suffix}} --push
+          docker buildx bake -f build.yml --set node_1.tags=ghcr.io/${{ env.IMAGE_REPOSITORY }}:b${{ github.run_number }}-${{matrix.project}}-${{matrix.version}}${{matrix.tag_suffix}} --push
